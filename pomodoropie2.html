@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pomodoro Timer</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #a1c4fd, #c2e9fb);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      position: relative;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    canvas#particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    #timer {
+      position: absolute;
+      z-index: 2;
+      font-size: 6rem;
+      font-weight: 900;
+      text-shadow:
+        0 0 40px rgba(255, 255, 255, 0.95),
+        0 0 80px rgba(255, 255, 255, 0.7),
+        0 0 120px rgba(255, 255, 255, 0.5);
+      color: #fff;
+      text-align: center;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: all 0.5s ease;
+    }
+
+    body.hide-all #timer {
+      top: 50%;
+      transform: translate(-50%, -50%) scale(1.8);
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+      color: #fff;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      transition: all 0.5s ease;
+      margin-top: 160px; /* Box stays where it is */
+    }
+
+    .container-content {
+      margin-top: +0.15cm; /* Move contents slightly up */
+    }
+
+    .container.hide {
+      transform: scale(0);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.3);
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(5px);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.5);
+      transform: scale(1.1);
+    }
+
+    button {
+      margin: 8px;
+      padding: 10px 25px;
+      border: none;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.85);
+      color: #333;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    button:hover {
+      background: #f5f5f5;
+      transform: translateY(-2px);
+    }
+
+    #showAllBtn {
+      margin-top: 15px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #333;
+      font-weight: 600;
+      display: none;
+      z-index: 3;
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    body.hide-all #showAllBtn {
+      display: block;
+    }
+
+    select, input[type="number"] {
+      width: 90%;
+      height: 40px;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      text-align: center;
+      margin: 8px auto;
+      display: block;
+      box-sizing: border-box;
+      appearance: none;
+    }
+
+    label {
+      display: block;
+      margin-top: 6px;
+      font-weight: 600;
+      color: #fff;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="particles"></canvas>
+
+  <div id="timer">25:00</div>
+
+  <div class="container" id="containerBox">
+    <button class="close-btn" onclick="hideContainer()">✖</button>
+    <div class="container-content">
+      <div>
+        <button id="startPauseBtn" onclick="toggleTimer()">▶ Start</button>
+        <button onclick="resetTimer()">⏹ Reset</button>
+      </div>
+
+      <div>
+        <label for="workTime">Work Time (minutes)</label>
+        <input type="number" id="workTime" value="25" min="1" oninput="updateTimerValue('work')">
+
+        <label for="breakTime">Break Time (minutes)</label>
+        <input type="number" id="breakTime" value="5" min="1" oninput="updateTimerValue('break')">
+      </div>
+
+      <div>
+        <label for="backgroundSelect">Change Background</label>
+        <select id="backgroundSelect" onchange="changeBackground()">
+          <option value="pastel">Soothing Pastel</option>
+          <option value="nature">Nature</option>
+          <option value="space">Space</option>
+          <option value="ocean">Ocean</option>
+          <option value="mountains">Mountains</option>
+          <option value="sunset">Sunset</option>
+          <option value="flowers">Flowers</option>
+          <option value="abstract">Abstract</option>
+          <option value="forest">Forest</option>
+          <option value="beach">Beach</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="musicSelect">Background Music</label>
+        <select id="musicSelect" onchange="changeMusic()">
+          <option value="none">None</option>
+          <option value="lofi">Lo-fi Beats</option>
+          <option value="rain">Rain Sounds</option>
+          <option value="forest">Forest Ambience</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <button id="showAllBtn" onclick="showContainer()">👁 Show All</button>
+
+  <audio id="backgroundAudio" loop></audio>
+
+  <script>
+    let timer;
+    let timeLeft = 25 * 60;
+    let isRunning = false;
+    let onBreak = false;
+
+    function toggleTimer() {
+      const btn = document.getElementById('startPauseBtn');
+      if (!isRunning) {
+        isRunning = true;
+        btn.textContent = '⏸ Pause';
+        timer = setInterval(() => {
+          if (timeLeft <= 0) {
+            clearInterval(timer);
+            isRunning = false;
+            btn.textContent = '▶ Start';
+            onBreak = !onBreak;
+            alert(onBreak ? 'Break Time!' : 'Work Time!');
+            timeLeft = (onBreak ? document.getElementById('breakTime').value : document.getElementById('workTime').value) * 60;
+            displayTime();
+          } else {
+            timeLeft--;
+            displayTime();
+          }
+        }, 1000);
+      } else {
+        clearInterval(timer);
+        isRunning = false;
+        btn.textContent = '▶ Start';
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(timer);
+      isRunning = false;
+      document.getElementById('startPauseBtn').textContent = '▶ Start';
+      const workTime = document.getElementById('workTime').value;
+      timeLeft = workTime * 60;
+      displayTime();
+    }
+
+    function displayTime() {
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      document.getElementById('timer').textContent = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+    }
+
+    function updateTimerValue(type) {
+      const timeInput = type === 'work' ? 'workTime' : 'breakTime';
+      const minutes = document.getElementById(timeInput).value;
+      timeLeft = minutes * 60;
+      displayTime();
+    }
+
+    function hideContainer() {
+      document.getElementById('containerBox').classList.add('hide');
+      document.body.classList.add('hide-all');
+    }
+
+    function showContainer() {
+      document.getElementById('containerBox').classList.remove('hide');
+      document.body.classList.remove('hide-all');
+    }
+
+    function changeBackground() {
+      const bg = document.getElementById('backgroundSelect').value;
+      const particlesCanvas = document.getElementById('particles');
+      if (bg === 'pastel') {
+        particlesCanvas.style.display = 'none';
+        document.body.style.animation = 'gradientBG 15s ease infinite';
+        document.body.style.background = 'linear-gradient(-45deg, #ff9a9e, #fad0c4, #a1c4fd, #c2e9fb)';
+      } else if (bg === 'particles') {
+        document.body.style.animation = '';
+        particlesCanvas.style.display = 'block';
+      } else {
+        particlesCanvas.style.display = 'none';
+        document.body.style.animation = '';
+        const bgImages = {
+          nature: "url('https://images.unsplash.com/photo-1501854140801-50d01698950b?fit=crop&w=1920&q=80')",
+          space: "url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?fit=crop&w=1920&q=80')",
+          ocean: "url('https://cdn.pixabay.com/photo/2016/11/19/09/46/ocean-1838340_1280.jpg')",
+          mountains: "url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?fit=crop&w=1920&q=80')",
+          sunset: "url('https://images.unsplash.com/photo-1619046339188-7256ecfb2185?fit=crop&w=1920&q=80')",
+          flowers: "url('https://cdn.pixabay.com/photo/2023/10/19/14/05/flower-8326809_1280.jpg')",
+          abstract: "url('https://images.unsplash.com/photo-1534237710431-e2e63d30ad44?fit=crop&w=1920&q=80')",
+          forest: "url('https://wallpapercave.com/wp/wp15150761.webp')",
+          beach: "url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?fit=crop&w=1920&q=80')"
+        };
+        document.body.style.background = `${bgImages[bg]} no-repeat center center/cover`;
+      }
+    }
+
+    function changeMusic() {
+      const music = document.getElementById('musicSelect').value;
+      const audio = document.getElementById('backgroundAudio');
+      if (music === 'none') {
+        audio.pause();
+        audio.src = '';
+      } else if (music === 'lofi') {
+        audio.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+      } else if (music === 'rain') {
+        audio.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3';
+      } else if (music === 'forest') {
+        audio.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3';
+      }
+      audio.play();
+    }
+
+    displayTime();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
